@@ -14,7 +14,7 @@ const {
     onlyCompleted = true,
     includeDaysheets = false,
     debug = false,
-    useProxy = true, // Force proxies ON
+    useProxy = true, // Enable for production
     proxyConfiguration = null
 } = input;
 
@@ -35,7 +35,7 @@ log.info('Starting PRCA Rodeo Results Scraper', {
 
 // 🕵️ Proxy configuration for human-like IP addresses
 const proxyConfig = useProxy ? {
-    proxyConfiguration: Actor.createProxyConfiguration({
+    proxyConfiguration: await Actor.createProxyConfiguration({
         groups: ['RESIDENTIAL'],
         countryCode: 'US',
     })
@@ -49,30 +49,98 @@ if (useProxy) {
 
 // Create the crawler
 const crawler = new PlaywrightCrawler({
-    requestHandler: async ({ page, request }) => {
-        log.info('🔍 MINIMAL MODE: Just screenshot, no extraction');
+    requestHandler: async ({ page, request, crawler }) => {
+        const { label } = request.userData;
         
-        // Wait for page
-        await page.waitForSelector('body');
-        await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second wait
-        
-        // Take screenshot
-        const screenshot = await page.screenshot({ fullPage: true });
-        log.info(`📸 Screenshot: ${screenshot.length} bytes`);
-        
-        // Save raw screenshot
-        await Actor.pushData({
-            url: request.url,
-            screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
-            screenshotSize: screenshot.length,
-            timestamp: new Date().toISOString(),
-            mode: 'minimal'
-        });
-        
-        log.info('✅ Minimal screenshot complete');
+        if (label === 'LISTING') {
+            log.info('🔍 Processing main results page...');
+            
+            // Wait for page to load
+            await page.waitForSelector('body');
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            
+            // Take screenshot of main page
+            const screenshot = await page.screenshot({ fullPage: true });
+            await Actor.pushData({
+                url: request.url,
+                screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
+                screenshotSize: screenshot.length,
+                timestamp: new Date().toISOString(),
+                type: 'listing_page'
+            });
+            
+            // Find event URLs to screenshot
+            const eventUrls = await page.evaluate(() => {
+                const resultLinks = Array.from(document.querySelectorAll('a[href*="/result/"]'));
+                const uniqueUrls = new Set();
+                
+                resultLinks.forEach(link => {
+                    const href = link.href;
+                    if (href && !href.includes('?')) {
+                        uniqueUrls.add(href);
+                    }
+                });
+                
+                return Array.from(uniqueUrls);
+            });
+            
+            log.info(`📋 Found ${eventUrls.length} unique event URLs to screenshot`);
+            
+            // Limit number of events if specified
+            const eventsToProcess = eventUrls.slice(0, maxRequestsPerCrawl - 1); // -1 for main page
+            
+            // Enqueue event pages for screenshots
+            const eventRequests = eventsToProcess.map(url => ({
+                url: `${url}?resultsTab=text`,
+                userData: { label: 'EVENT_RESULTS', baseUrl: url }
+            }));
+            
+            await crawler.addRequests(eventRequests);
+            
+            if (includeDaysheets) {
+                const daysheetRequests = eventsToProcess.map(url => ({
+                    url: `${url}?resultsTab=daysheets`, 
+                    userData: { label: 'EVENT_DAYSHEET', baseUrl: url }
+                }));
+                
+                await crawler.addRequests(daysheetRequests);
+            }
+            
+        } else if (label === 'EVENT_RESULTS') {
+            log.info('📸 Taking screenshot of event results page...');
+            
+            await page.waitForSelector('body');
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            const screenshot = await page.screenshot({ fullPage: true });
+            await Actor.pushData({
+                url: request.url,
+                baseUrl: request.userData.baseUrl,
+                screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
+                screenshotSize: screenshot.length,
+                timestamp: new Date().toISOString(),
+                type: 'event_results'
+            });
+            
+        } else if (label === 'EVENT_DAYSHEET') {
+            log.info('📸 Taking screenshot of event daysheet page...');
+            
+            await page.waitForSelector('body');
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            const screenshot = await page.screenshot({ fullPage: true });
+            await Actor.pushData({
+                url: request.url,
+                baseUrl: request.userData.baseUrl,
+                screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
+                screenshotSize: screenshot.length,
+                timestamp: new Date().toISOString(),
+                type: 'event_daysheet'
+            });
+        }
     },
-    maxRequestsPerCrawl: 1,
-    maxConcurrency: 1,
+    maxRequestsPerCrawl,
+    maxConcurrency,
     navigationTimeoutSecs: 60,
     maxRequestRetries: 1,
     requestHandlerTimeoutSecs: 60,
