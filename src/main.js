@@ -49,12 +49,33 @@ if (useProxy) {
 
 // Create the crawler
 const crawler = new PlaywrightCrawler({
-    requestHandler: router,
-    maxRequestsPerCrawl,
-    maxConcurrency: useProxy ? Math.min(maxConcurrency, 2) : maxConcurrency, // Lower concurrency with proxies
-    navigationTimeoutSecs: CRAWLER_CONFIG.navigationTimeout,
-    maxRequestRetries: CRAWLER_CONFIG.maxRetries,
-    requestHandlerTimeoutSecs: 120, // Increase timeout for Playwright
+    requestHandler: async ({ page, request }) => {
+        log.info('🔍 MINIMAL MODE: Just screenshot, no extraction');
+        
+        // Wait for page
+        await page.waitForSelector('body');
+        await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second wait
+        
+        // Take screenshot
+        const screenshot = await page.screenshot({ fullPage: true });
+        log.info(`📸 Screenshot: ${screenshot.length} bytes`);
+        
+        // Save raw screenshot
+        await Actor.pushData({
+            url: request.url,
+            screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
+            screenshotSize: screenshot.length,
+            timestamp: new Date().toISOString(),
+            mode: 'minimal'
+        });
+        
+        log.info('✅ Minimal screenshot complete');
+    },
+    maxRequestsPerCrawl: 1,
+    maxConcurrency: 1,
+    navigationTimeoutSecs: 60,
+    maxRequestRetries: 1,
+    requestHandlerTimeoutSecs: 60,
     ...proxyConfig, // Add proxy configuration if enabled
     
     // Human-like browser simulation
