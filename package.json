@@ -1,0 +1,22 @@
+{
+  "name": "prca-scraper",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "PRCA rodeo results scraper for Apify",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["apify", "scraper", "prca", "rodeo"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "apify": "^3.1.10",
+    "playwright": "^1.37.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/duggiephresh/prca-scraper.git"
+  }
+}
