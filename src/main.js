@@ -36,16 +36,15 @@ log.info('Starting PRCA Rodeo Results Scraper', {
 // 🕵️ Proxy configuration for human-like IP addresses
 const proxyConfig = useProxy ? {
     proxyConfiguration: Actor.createProxyConfiguration({
-        groups: proxyConfiguration?.apifyProxyGroups || ['RESIDENTIAL'],
+        groups: ['RESIDENTIAL'],
         countryCode: 'US',
     })
 } : {};
 
 if (useProxy) {
-    log.info('🕵️ Using residential proxies for stealth', {
-        groups: proxyConfiguration?.apifyProxyGroups || ['RESIDENTIAL'],
-        countryCode: 'US'
-    });
+    log.info('🕵️ Using residential proxies for stealth (US-based)');
+} else {
+    log.warning('⚠️ Running without proxies - may be blocked by bot detection');
 }
 
 // Create the crawler

@@ -50,7 +50,7 @@
       "title": "Use Proxy",
       "type": "boolean",
       "description": "Enable residential proxy rotation to avoid blocking (requires Apify proxy subscription)",
-      "default": false
+      "default": true
     },
     "proxyConfiguration": {
       "title": "Proxy Configuration",
