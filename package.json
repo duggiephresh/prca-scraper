@@ -14,8 +14,7 @@
     "apify": "^3.4.4",
     "apify-cli": "^1.1.1",
     "crawlee": "^3.14.1",
-    "playwright": "^1.55.0",
-    "puppeteer": "^24.19.0"
+    "playwright": "^1.55.0"
   },
   "devDependencies": {
     "@apify/tsconfig": "^0.1.0"

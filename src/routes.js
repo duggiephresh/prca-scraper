@@ -1,8 +1,8 @@
-import { createPuppeteerRouter, Dataset } from 'crawlee';
+import { createPlaywrightRouter, Dataset } from 'crawlee';
 import { extractCompletedEvents, extractEventResults, extractDaysheetData } from './extractors.js';
 import { SELECTORS, LABELS, URL_PATTERNS } from './constants.js';
 
-export const router = createPuppeteerRouter();
+export const router = createPlaywrightRouter();
 
 // Default handler - route to listing page handler
 router.addDefaultHandler(async (context) => {
