@@ -1,31 +1,51 @@
 {
-    "title": "PRCA Scraper Input",
-    "type": "object",
-    "schemaVersion": 1,
-    "properties": {
-        "startUrl": {
-            "title": "Start URL",
-            "type": "string",
-            "description": "The URL to start scraping from",
-            "default": "https://www.prorodeo.com/prorodeo/rodeos/results",
-            "editor": "textfield"
-        },
-        "maxPages": {
-            "title": "Max pages to scrape",
-            "type": "integer",
-            "description": "Maximum number of pages to scrape",
-            "default": 10,
-            "minimum": 1,
-            "maximum": 100
-        },
-        "outputFormat": {
-            "title": "Output format",
-            "type": "string",
-            "description": "Format for the output data",
-            "default": "json",
-            "enum": ["json", "csv"],
-            "enumTitles": ["JSON", "CSV"]
-        }
+  "title": "PRCA Scraper Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "startUrls": {
+      "title": "Start URLs",
+      "type": "array",
+      "description": "URLs to start scraping from",
+      "prefill": [
+        "https://www.prorodeo.com/results"
+      ],
+      "editor": "stringList"
     },
-    "required": ["startUrl"]
+    "maxRequestsPerCrawl": {
+      "title": "Max requests per crawl",
+      "type": "integer",
+      "description": "Maximum number of pages to crawl (0 for unlimited)",
+      "minimum": 0,
+      "default": 100,
+      "unit": "requests"
+    },
+    "maxConcurrency": {
+      "title": "Max concurrency",
+      "type": "integer",
+      "description": "Maximum number of pages processed in parallel",
+      "minimum": 1,
+      "maximum": 20,
+      "default": 5
+    },
+    "onlyCompleted": {
+      "title": "Only Completed Events",
+      "type": "boolean",
+      "description": "Only scrape events with 'Completed' status",
+      "default": true
+    },
+    "includeDaysheets": {
+      "title": "Include Daysheets",
+      "type": "boolean",
+      "description": "Also scrape daysheet data for each event",
+      "default": false
+    },
+    "debug": {
+      "title": "Debug mode",
+      "type": "boolean",
+      "description": "Enable debug logging",
+      "default": false
+    }
+  },
+  "required": []
 }

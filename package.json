@@ -1,22 +1,20 @@
 {
-  "name": "prca-scraper",
+  "name": "prca-rodeo-scraper",
   "version": "1.0.0",
+  "description": "Apify actor to scrape completed rodeo results from ProRodeo.com",
   "type": "module",
-  "description": "PRCA rodeo results scraper for Apify",
   "main": "src/main.js",
   "scripts": {
     "start": "node src/main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["apify", "scraper", "prca", "rodeo"],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "apify": "^3.1.10",
-    "playwright": "^1.37.0"
+    "apify": "^3.4.4",
+    "crawlee": "^3.14.1"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/duggiephresh/prca-scraper.git"
+  "devDependencies": {
+    "@apify/tsconfig": "^0.1.0"
   }
 }

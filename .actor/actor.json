@@ -1,0 +1,37 @@
+{
+  "actorSpecification": 1,
+  "name": "prca-rodeo-scraper",
+  "title": "PRCA Rodeo Results Scraper",
+  "description": "Scrapes completed rodeo results from ProRodeo.com",
+  "version": "1.0.0",
+  "buildTag": "latest",
+  "dockerfile": "./Dockerfile",
+  "readme": "./README.md",
+  "input": "./INPUT_SCHEMA.json",
+  "storages": {
+    "dataset": {
+      "actorSpecification": 1,
+      "title": "PRCA Rodeo Results",
+      "views": {
+        "results": {
+          "title": "Results",
+          "transformation": {
+            "fields": [
+              "eventName",
+              "location",
+              "status",
+              "date",
+              "addedMoney"
+            ]
+          },
+          "display": {
+            "component": "table",
+            "properties": {
+              "pageSize": 20
+            }
+          }
+        }
+      }
+    }
+  }
+}

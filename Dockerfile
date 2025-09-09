@@ -1,14 +1,14 @@
-# Use Apify base image
-FROM apify/actor-node-playwright-chrome:18
+# Use Apify's base image
+FROM apify/actor-node-puppeteer-chrome:20
 
 # Copy package files
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production --no-optional
+RUN npm install
 
 # Copy source code
 COPY . ./
 
-# Set up Apify
-CMD npm start
+# Run the actor
+CMD ["npm", "start"]

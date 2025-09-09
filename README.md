@@ -1,60 +1,63 @@
-# PRCA Scraper
+# PRCA Rodeo Results Scraper
 
-A web scraper built for the Apify platform that extracts rodeo results and event data from the Professional Rodeo Cowboys Association (PRCA) website.
+An Apify actor that scrapes completed rodeo results from ProRodeo.com. This scraper handles JavaScript-rendered content using PuppeteerCrawler and outputs structured JSON data suitable for n8n workflow processing.
 
 ## Features
 
-- Scrapes rodeo results from prorodeo.com
-- Extracts event information, contestant data, and results
-- Supports pagination for comprehensive data collection
-- Configurable output formats (JSON/CSV)
-- Built for the Apify platform with Playwright
+- Scrapes completed rodeo events from ProRodeo.com
+- Handles JavaScript-rendered content with Puppeteer
+- Extracts contestant results with scores and prize money
+- Optional daysheet data extraction
+- Automatic pagination handling
+- Resource blocking for improved performance
+- Configurable concurrency and filtering options
+
+## Quick Start
+
+### Local Development
+
+Install dependencies:
+npm install
+
+Install Apify CLI (if not already installed):
+npm install -g apify-cli
+
+Run locally:
+apify run
+apify run --purge
+
+### Deploy to Apify Platform
+
+Login to Apify:
+apify login
+
+Push to platform:
+apify push
 
 ## Configuration
 
 The scraper accepts the following input parameters:
-
-- `startUrl`: The URL to begin scraping from (default: PRCA results page)
-- `maxPages`: Maximum number of pages to scrape (1-100)
-- `outputFormat`: Output format - json or csv
-
-## Usage
-
-### On Apify Platform
-
-1. Deploy this scraper to your Apify account
-2. Configure the input parameters
-3. Run the scraper
-4. Download the results from the dataset
-
-### Local Development
-
-1. Install dependencies: `npm install`
-2. Set environment variables for Apify
-3. Run: `npm start`
+- startUrls: URLs to start scraping
+- maxRequestsPerCrawl: Maximum pages to crawl (0 = unlimited)
+- maxConcurrency: Max parallel page processing
+- onlyCompleted: Only scrape Completed events
+- includeDaysheets: Also scrape daysheet data
+- debug: Enable debug logging
 
 ## Output Format
 
-Each scraped item includes:
-- `id`: Unique identifier
-- `text`: Extracted text content
-- `html`: Raw HTML snippet
-- `timestamp`: When the data was scraped
-- `type`: Classification of the data
-- Additional fields based on content analysis
+The scraper outputs structured JSON data for each event with eventName, location, status, categories, and results.
 
-## Requirements
+## Project Structure
 
-- Node.js 16+
-- Playwright browser binaries
-- Apify account (for platform deployment)
-
-## Development
-
-This scraper uses:
-- Apify SDK for platform integration
-- Playwright for browser automation
-- Modern JavaScript (ES modules)
+- .actor/actor.json - Apify actor configuration
+- src/main.js - Entry point and crawler setup
+- src/routes.js - URL routing and page handlers
+- src/extractors.js - Data extraction logic
+- src/constants.js - Selectors and configuration
+- package.json - Dependencies
+- INPUT_SCHEMA.json - Input validation schema
+- Dockerfile - Container configuration
 
 ## License
 
