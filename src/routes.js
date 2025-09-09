@@ -21,7 +21,7 @@ router.addHandler(LABELS.LISTING, async ({ page, request, enqueueLinks, log, cra
     try {
         // Wait for initial content to load
         log.debug('Waiting for page content...');
-        await page.waitForSelector('a[href*="/result/"]', { 
+        await page.waitForSelector('a', { 
             timeout: 30000,
             visible: true 
         });

@@ -1,4 +1,9 @@
-// Crawler configuration
+// Based on the inspection, let's update our selectors
+// This script will update the constants.js file with correct selectors
+
+import fs from 'fs';
+
+const updatedConstants = `// Crawler configuration
 export const CRAWLER_CONFIG = {
     navigationTimeout: 60,  // Increased timeout
     maxRetries: 3,
@@ -10,7 +15,7 @@ export const CRAWLER_CONFIG = {
 export const URL_PATTERNS = {
     baseUrl: 'https://www.prorodeo.com',
     resultsPage: 'https://www.prorodeo.com/results',
-    eventPattern: /\/result\/\d{4}\//,
+    eventPattern: /\\/result\\/\\d{4}\\//,
     resultsTab: '?resultsTab=text',
     daysheetsTab: '?resultsTab=daysheets'
 };
@@ -62,9 +67,12 @@ export const SELECTORS = {
 
 // Data extraction patterns
 export const PATTERNS = {
-    prizeMoney: /\$[\d,]+/g,
-    dateRange: /[A-Za-z]+ \d{1,2}(?:-\d{1,2})?, \d{4}/,
-    score: /\d+\.?\d*\s*(?:points?)?/,
-    time: /\d+\.?\d*\s*(?:seconds?|sec)/,
-    round: /(?:First|Second|Third|Fourth|Fifth|\d+(?:st|nd|rd|th))\s+(?:round|Round|performance|Performance)/i
-};
+    prizeMoney: /\\$[\\d,]+/g,
+    dateRange: /[A-Za-z]+ \\d{1,2}(?:-\\d{1,2})?, \\d{4}/,
+    score: /\\d+\\.?\\d*\\s*(?:points?)?/,
+    time: /\\d+\\.?\\d*\\s*(?:seconds?|sec)/,
+    round: /(?:First|Second|Third|Fourth|Fifth|\\d+(?:st|nd|rd|th))\\s+(?:round|Round|performance|Performance)/i
+};`;
+
+fs.writeFileSync('src/constants.js', updatedConstants);
+console.log('✅ Updated constants.js with better selectors');
