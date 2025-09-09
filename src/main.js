@@ -15,7 +15,8 @@ const {
     includeDaysheets = false,
     debug = false,
     useProxy = true, // Enable for production
-    proxyConfiguration = null
+    proxyConfiguration = null,
+    skipProcessedUrls = [] // Array of URLs to skip (from n8n)
 } = input;
 
 // Set logging level
@@ -86,8 +87,14 @@ const crawler = new PlaywrightCrawler({
             
             log.info(`📋 Found ${eventUrls.length} unique event URLs to screenshot`);
             
+            // Filter out already processed URLs
+            const skipUrls = new Set(skipProcessedUrls.map(url => url.replace(/\?.*/, ''))); // Remove query params for comparison
+            const newEventUrls = eventUrls.filter(url => !skipUrls.has(url));
+            
+            log.info(`📊 Filtering: ${eventUrls.length} total events, ${newEventUrls.length} new events to process`);
+            
             // Limit number of events if specified
-            const eventsToProcess = eventUrls.slice(0, maxRequestsPerCrawl - 1); // -1 for main page
+            const eventsToProcess = newEventUrls.slice(0, maxRequestsPerCrawl - 1); // -1 for main page
             
             // Enqueue event pages for screenshots
             const eventRequests = eventsToProcess.map(url => ({
@@ -113,9 +120,14 @@ const crawler = new PlaywrightCrawler({
             await new Promise(resolve => setTimeout(resolve, 3000));
             
             const screenshot = await page.screenshot({ fullPage: true });
+            
+            // Extract event ID from URL for easier tracking
+            const eventId = request.userData.baseUrl.match(/\/(\d+)$/)?.[1] || 'unknown';
+            
             await Actor.pushData({
                 url: request.url,
                 baseUrl: request.userData.baseUrl,
+                eventId: eventId,
                 screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
                 screenshotSize: screenshot.length,
                 timestamp: new Date().toISOString(),
@@ -129,9 +141,14 @@ const crawler = new PlaywrightCrawler({
             await new Promise(resolve => setTimeout(resolve, 3000));
             
             const screenshot = await page.screenshot({ fullPage: true });
+            
+            // Extract event ID from URL for easier tracking
+            const eventId = request.userData.baseUrl.match(/\/(\d+)$/)?.[1] || 'unknown';
+            
             await Actor.pushData({
                 url: request.url,
                 baseUrl: request.userData.baseUrl,
+                eventId: eventId,
                 screenshot: `data:image/png;base64,${screenshot.toString('base64')}`,
                 screenshotSize: screenshot.length,
                 timestamp: new Date().toISOString(),

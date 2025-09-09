@@ -61,6 +61,16 @@
         "useApifyProxy": true,
         "apifyProxyGroups": ["RESIDENTIAL"]
       }
+    },
+    "skipProcessedUrls": {
+      "title": "Skip Processed URLs",
+      "type": "array",
+      "description": "Array of event URLs to skip (already processed)",
+      "items": {
+        "type": "string"
+      },
+      "editor": "stringList",
+      "default": []
     }
   },
   "required": []
