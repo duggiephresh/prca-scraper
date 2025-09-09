@@ -59,6 +59,49 @@ The scraper outputs structured JSON data for each event with eventName, location
 - INPUT_SCHEMA.json - Input validation schema
 - Dockerfile - Container configuration
 
+## Development Progress Log
+
+### 2025-09-09 - Initial Setup & Testing
+
+#### ✅ Repository Setup
+- **13:00** - Initialized git repository and connected to GitHub remote
+- **13:01** - Merged with existing advanced PRCA scraper code from remote repository
+- **13:02** - Successfully pushed to GitHub: https://github.com/duggiephresh/prca-scraper
+
+#### ✅ Apify Platform Integration  
+- **18:01** - First build attempt failed: `File ".actor/INPUT_SCHEMA.json" does not exist!`
+- **18:02** - **FIXED**: Moved `INPUT_SCHEMA.json` to `.actor/` directory as required by Apify platform
+- **18:07** - **SUCCESS**: Actor build succeeded on Apify platform
+
+#### ⚠️ Initial Runtime Issues
+- **18:07** - First run encountered selector timeout: `Waiting for selector 'a' failed`
+- **18:08** - Issue: PRCA website requires JavaScript, scraper not waiting long enough for content load
+
+#### ✅ Enhanced Results vs Daysheet Handling
+- **18:10** - **IMPROVED**: Enhanced logging to distinguish Results (🎯) vs Daysheets (📋)
+- **18:11** - **ADDED**: Multiple selector fallback strategy for better page loading
+- **18:12** - **ENHANCED**: Detailed queue logging showing counts of each type
+- **18:13** - **IMPLEMENTED**: Individual URL tracking and extraction metrics
+
+#### Current Status
+- **Build**: ✅ Successful on Apify platform
+- **Structure**: ✅ Proper `.actor/` directory configuration
+- **Logging**: ✅ Enhanced with visual indicators and detailed metrics
+- **Testing**: 🔄 Ready for testing with both Results and Daysheet extraction
+
+#### Next Steps
+1. Test updated scraper with `includeDaysheets: true`
+2. Monitor logs for improved selector handling
+3. Verify both Results and Daysheet data extraction
+4. Optimize for production workloads
+
+#### Key Files Modified
+- `src/routes.js` - Enhanced logging and selector strategies
+- `.actor/INPUT_SCHEMA.json` - Moved to correct Apify directory
+- `README.md` - Added progress tracking
+
+---
+
 ## License
 
 ISC
