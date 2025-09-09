@@ -36,7 +36,7 @@ router.addHandler(LABELS.LISTING, async ({ page, request, enqueueLinks, log, cra
             }
             
             // Give the page some time to render JavaScript content
-            await page.waitForTimeout(5000);
+            await new Promise(resolve => setTimeout(resolve, 5000));
             
             // Try different selectors that might indicate the page has loaded
             const selectors = [
@@ -64,7 +64,7 @@ router.addHandler(LABELS.LISTING, async ({ page, request, enqueueLinks, log, cra
             if (!selectorFound) {
                 log.warning('No expected selectors found, but continuing with extraction attempt');
                 // Additional wait for JavaScript content
-                await page.waitForTimeout(10000);
+                await new Promise(resolve => setTimeout(resolve, 10000));
             }
             
         } catch (error) {
@@ -86,7 +86,7 @@ router.addHandler(LABELS.LISTING, async ({ page, request, enqueueLinks, log, cra
                     if (isVisible) {
                         log.debug(`Clicking "Load More" button (${loadCount + 1}/${maxLoads})`);
                         await loadMoreButton.click();
-                        await page.waitForTimeout(2000);
+                        await new Promise(resolve => setTimeout(resolve, 2000));
                         loadCount++;
                     } else {
                         hasMore = false;

@@ -7,15 +7,48 @@ import { EVENT_STATUS, PATTERNS, CATEGORIES, URL_PATTERNS } from './constants.js
 export async function extractCompletedEvents(page, config) {
     log.debug('Extracting events from listing page');
     
+    // First, let's debug what we can actually find on the page
+    const pageAnalysis = await page.evaluate(() => {
+        const allLinks = Array.from(document.querySelectorAll('a'));
+        const resultLinks = Array.from(document.querySelectorAll('a[href*="/result/"]'));
+        const bodyText = document.body ? document.body.textContent : 'NO BODY';
+        
+        return {
+            totalLinks: allLinks.length,
+            resultLinks: resultLinks.length,
+            firstFewLinks: allLinks.slice(0, 10).map(a => ({ href: a.href, text: a.textContent?.trim()?.substring(0, 50) })),
+            resultLinkSample: resultLinks.slice(0, 5).map(a => ({ href: a.href, text: a.textContent?.trim()?.substring(0, 50) })),
+            bodyTextPreview: bodyText.substring(0, 500),
+            hasAddedMoney: bodyText.includes('Added Money')
+        };
+    });
+    
+    log.info('Page analysis results:', pageAnalysis);
+    
     const events = await page.evaluate((statuses) => {
         const extractedEvents = [];
         
-        // Find all links to event result pages, excluding "See Results" and "Daysheet" text
-        const eventLinks = Array.from(document.querySelectorAll('a[href*="/result/"]'))
-            .filter(link => {
-                const text = link.textContent.trim();
-                return !text.includes('See Results') && !text.includes('Daysheet');
-            });
+        // More flexible approach - find all links first
+        let allLinks = Array.from(document.querySelectorAll('a'));
+        console.log(`Total links found: ${allLinks.length}`);
+        
+        // Filter for result links
+        let eventLinks = allLinks.filter(link => {
+            const href = link.href || '';
+            return href.includes('/result/');
+        });
+        console.log(`Result links found: ${eventLinks.length}`);
+        
+        // Further filter to exclude navigation links
+        eventLinks = eventLinks.filter(link => {
+            const text = link.textContent ? link.textContent.trim() : '';
+            return text.length > 0 && 
+                   !text.includes('See Results') && 
+                   !text.includes('Daysheet') && 
+                   !text.includes('View') &&
+                   text.length < 100; // Event names shouldn't be too long
+        });
+        console.log(`Filtered event links: ${eventLinks.length}`);
         
         // Create a map to avoid duplicates
         const eventMap = new Map();
@@ -176,7 +209,7 @@ export async function extractEventResults(page, eventData) {
     
     try {
         // Wait for content to load
-        await page.waitForTimeout(3000);
+        await new Promise(resolve => setTimeout(resolve, 3000));
         
         // Get basic event information
         const basicInfo = await page.evaluate((baseEventData) => {
@@ -235,7 +268,7 @@ export async function extractDaysheetData(page, eventData) {
     
     try {
         // Wait for content to load
-        await page.waitForTimeout(3000);
+        await new Promise(resolve => setTimeout(resolve, 3000));
         
         // Get basic event information
         const basicInfo = await page.evaluate((baseEventData) => {
