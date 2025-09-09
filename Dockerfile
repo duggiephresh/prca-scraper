@@ -1,5 +1,5 @@
-# Use Apify's base image
-FROM apify/actor-node-puppeteer-chrome:20
+# Use Apify's Playwright base image
+FROM apify/actor-node-playwright-chrome:20
 
 # Copy package files
 COPY package*.json ./
