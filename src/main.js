@@ -14,7 +14,7 @@ const {
     onlyCompleted = true,
     includeDaysheets = false,
     debug = false,
-    useProxy = false,
+    useProxy = true, // Force proxies ON
     proxyConfiguration = null
 } = input;
 
