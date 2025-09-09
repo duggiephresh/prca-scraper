@@ -42,20 +42,23 @@ export const CATEGORIES = [
     'All-Around'
 ];
 
-// Updated selectors based on actual site inspection
+// Updated selectors based on technical reference investigation
 export const SELECTORS = {
     listing: {
-        // Wait for any anchor tag to ensure page is loaded
-        initialWait: 'a',
+        // Wait for event links to ensure page is loaded
+        initialWait: 'a[href*="/result/"]',
         eventLinks: 'a[href*="/result/"]',
-        loadMoreButton: 'button',  // Will filter by text content
+        loadMoreButton: 'button',  // Will filter by "Load More" text content
+        // Status elements are simple text nodes, not Vue.js components
         statusIndicators: ['Completed', 'In Progress', 'Upcoming']
     },
     eventPage: {
         eventTitle: 'h1',
         resultsContainer: 'main',
-        categoryHeader: 'h2',
-        resultsTable: 'table',
+        categoryHeader: 'h2, h3',
+        resultsContent: 'p[ref^="e130"]',  // Specific pattern from technical reference
+        resultsContentGeneral: 'p',  // Fallback for results paragraphs
+        resultsTable: 'table',  // Fallback if tables exist
         contestantRow: 'tr'
     }
 };

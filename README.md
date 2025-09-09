@@ -1,16 +1,16 @@
-# PRCA Rodeo Results Scraper
+# PRCA Rodeo Results Scraper (Screenshot-Based)
 
-An Apify actor that scrapes completed rodeo results from ProRodeo.com. This scraper handles JavaScript-rendered content using PuppeteerCrawler and outputs structured JSON data suitable for n8n workflow processing.
+An Apify actor that captures full-page screenshots of rodeo results from ProRodeo.com. This scraper handles JavaScript-rendered content using PuppeteerCrawler and outputs base64-encoded screenshots for processing in n8n workflows.
 
 ## Features
 
-- Scrapes completed rodeo events from ProRodeo.com
-- Handles JavaScript-rendered content with Puppeteer
-- Extracts contestant results with scores and prize money
-- Optional daysheet data extraction
-- Automatic pagination handling
-- Resource blocking for improved performance
-- Configurable concurrency and filtering options
+- ✅ Captures screenshots of completed rodeo events from ProRodeo.com
+- ✅ Handles JavaScript-rendered content with Puppeteer
+- ✅ Full-page screenshot capture of results and daysheet pages  
+- ✅ Base64 encoding for direct n8n integration
+- ✅ Automatic pagination handling ("Load More" button)
+- ✅ Resource blocking for improved performance
+- ✅ Configurable concurrency and filtering options
 
 ## Quick Start
 
@@ -46,7 +46,32 @@ The scraper accepts the following input parameters:
 
 ## Output Format
 
-The scraper outputs structured JSON data for each event with eventName, location, status, categories, and results.
+The scraper outputs screenshot data for each event:
+
+```json
+{
+  "name": "Puyallup Rodeo",
+  "status": "Completed",
+  "resultsUrl": "https://www.prorodeo.com/result/2025/puyallup-rodeo/16140?resultsTab=text",
+  "screenshot": "data:image/png;base64,iVBORw0KGgoAAAANSUhEU...",
+  "screenshotSize": 1899041,
+  "pageTitle": "Puyallup Rodeo | PRCA Sports News",
+  "type": "results_screenshot",
+  "extractedAt": "2025-01-09T17:36:12.000Z"
+}
+```
+
+## Testing
+
+Run screenshot functionality test:
+```bash
+node test-screenshots.js
+```
+
+Run comprehensive test:
+```bash
+node test-scraper.js
+```
 
 ## Project Structure
 

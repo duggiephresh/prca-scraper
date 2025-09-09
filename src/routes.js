@@ -19,44 +19,56 @@ router.addHandler(LABELS.LISTING, async ({ page, request, enqueueLinks, log, cra
     log.info('Processing results listing page', { url: request.url });
     
     try {
-        // Wait for initial content to load - try multiple selectors
+        // Wait for initial content to load - comprehensive approach
         log.debug('Waiting for page content to load...');
         
         try {
             // First try to wait for body content to load
-            await page.waitForLoadState('networkidle', { timeout: 15000 });
-            log.debug('Network idle achieved');
-        } catch (error) {
-            log.debug('Network idle timeout, continuing...');
-        }
-        
-        // Try different selectors that might indicate the page has loaded
-        const selectors = [
-            'main',           // Main content area
-            '[data-testid]',  // React/Vue components often use data-testid
-            '.container',     // Common CSS class
-            'h1, h2, h3',     // Any heading
-            'a[href*="/result/"]',  // Specific result links
-            'a'               // Any links as fallback
-        ];
-        
-        let selectorFound = false;
-        for (const selector of selectors) {
+            await page.waitForSelector('body', { timeout: 10000 });
+            log.debug('Page body loaded');
+            
+            // Try to achieve network idle state
             try {
-                await page.waitForSelector(selector, { 
-                    timeout: 10000,
-                    visible: true 
-                });
-                log.debug(`Found content using selector: ${selector}`);
-                selectorFound = true;
-                break;
+                await page.waitForLoadState('networkidle', { timeout: 10000 });
+                log.debug('Network idle achieved');
             } catch (error) {
-                log.debug(`Selector ${selector} not found, trying next...`);
+                log.debug('Network idle timeout, continuing...');
             }
-        }
-        
-        if (!selectorFound) {
-            log.warning('No expected selectors found, but continuing with extraction attempt');
+            
+            // Give the page some time to render JavaScript content
+            await page.waitForTimeout(5000);
+            
+            // Try different selectors that might indicate the page has loaded
+            const selectors = [
+                'a[href*="/result/"]',  // Specific result links (most important)
+                'main',                 // Main content area
+                'h1, h2, h3',          // Any heading
+                '[data-testid]',       // React/Vue components often use data-testid
+                '.container'           // Common CSS class
+            ];
+            
+            let selectorFound = false;
+            for (const selector of selectors) {
+                try {
+                    const elements = await page.$$(selector);
+                    if (elements.length > 0) {
+                        log.debug(`Found content using selector: ${selector} (${elements.length} elements)`);
+                        selectorFound = true;
+                        break;
+                    }
+                } catch (error) {
+                    log.debug(`Selector ${selector} failed, trying next...`);
+                }
+            }
+            
+            if (!selectorFound) {
+                log.warning('No expected selectors found, but continuing with extraction attempt');
+                // Additional wait for JavaScript content
+                await page.waitForTimeout(10000);
+            }
+            
+        } catch (error) {
+            log.warning('Page loading timeout, proceeding anyway', { error: error.message });
         }
         
         // Handle pagination - click "Load More" if needed

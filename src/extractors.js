@@ -10,8 +10,12 @@ export async function extractCompletedEvents(page, config) {
     const events = await page.evaluate((statuses) => {
         const extractedEvents = [];
         
-        // Find all links to event result pages
-        const eventLinks = Array.from(document.querySelectorAll('a[href*="/result/"]'));
+        // Find all links to event result pages, excluding "See Results" and "Daysheet" text
+        const eventLinks = Array.from(document.querySelectorAll('a[href*="/result/"]'))
+            .filter(link => {
+                const text = link.textContent.trim();
+                return !text.includes('See Results') && !text.includes('Daysheet');
+            });
         
         // Create a map to avoid duplicates
         const eventMap = new Map();
@@ -42,12 +46,71 @@ export async function extractCompletedEvents(page, config) {
                         circuit: ''
                     };
                     
-                    // Extract status
-                    statuses.forEach(status => {
-                        if (containerText.includes(status)) {
-                            eventData.status = status;
+                    // Extract status - try multiple approaches
+                    let foundStatus = 'Unknown';
+                    
+                    // Approach 1: Look for status elements within this container
+                    const statusElements = Array.from(container.querySelectorAll('*')).filter(el => 
+                        statuses.includes(el.textContent.trim()) &&
+                        el.childNodes.length === 1 && 
+                        el.childNodes[0].nodeType === 3
+                    );
+                    
+                    if (statusElements.length > 0) {
+                        foundStatus = statusElements[0].textContent.trim();
+                    } else {
+                        // Approach 2: Search for status text directly in container text
+                        for (const status of statuses) {
+                            if (containerText.includes(status)) {
+                                foundStatus = status;
+                                break;
+                            }
                         }
-                    });
+                        
+                        // Approach 3: Search in nearby elements (siblings/parent)
+                        if (foundStatus === 'Unknown') {
+                            let searchContainer = container.parentElement || container;
+                            for (let depth = 0; depth < 3 && foundStatus === 'Unknown'; depth++) {
+                                const nearbyStatusElements = Array.from(searchContainer.querySelectorAll('*')).filter(el => 
+                                    statuses.includes(el.textContent.trim()) &&
+                                    el.childNodes.length === 1 && 
+                                    el.childNodes[0].nodeType === 3
+                                );
+                                
+                                if (nearbyStatusElements.length > 0) {
+                                    // Find the closest status element to our event link
+                                    const eventLinkRect = link.getBoundingClientRect ? link.getBoundingClientRect() : null;
+                                    if (eventLinkRect) {
+                                        let closestDistance = Infinity;
+                                        let closestStatus = null;
+                                        
+                                        nearbyStatusElements.forEach(statusEl => {
+                                            const statusRect = statusEl.getBoundingClientRect();
+                                            const distance = Math.sqrt(
+                                                Math.pow(statusRect.left - eventLinkRect.left, 2) + 
+                                                Math.pow(statusRect.top - eventLinkRect.top, 2)
+                                            );
+                                            if (distance < closestDistance) {
+                                                closestDistance = distance;
+                                                closestStatus = statusEl.textContent.trim();
+                                            }
+                                        });
+                                        
+                                        if (closestStatus) {
+                                            foundStatus = closestStatus;
+                                        }
+                                    } else {
+                                        // Fallback: just use first found status
+                                        foundStatus = nearbyStatusElements[0].textContent.trim();
+                                    }
+                                }
+                                searchContainer = searchContainer.parentElement;
+                                if (!searchContainer) break;
+                            }
+                        }
+                    }
+                    
+                    eventData.status = foundStatus;
                     
                     // Extract added money
                     const moneyMatch = containerText.match(/Added Money:\s*\$?([\d,]+)/);
@@ -106,16 +169,19 @@ export async function extractCompletedEvents(page, config) {
 }
 
 /**
- * Extract results data from an event page
+ * Extract results data and take screenshots from an event page
  */
 export async function extractEventResults(page, eventData) {
-    log.debug(`Extracting results for event: ${eventData.name}`);
+    log.debug(`Taking screenshot for event: ${eventData.name}`);
     
     try {
-        const results = await page.evaluate((baseEventData) => {
+        // Wait for content to load
+        await page.waitForTimeout(3000);
+        
+        // Get basic event information
+        const basicInfo = await page.evaluate((baseEventData) => {
             const data = {
                 ...baseEventData,
-                categories: [],
                 extractedAt: new Date().toISOString()
             };
             
@@ -124,70 +190,57 @@ export async function extractEventResults(page, eventData) {
                 data.eventName = h1.textContent.trim();
             }
             
-            // Look for results content
-            const possibleResultsElements = Array.from(document.querySelectorAll('p, div'))
-                .filter(el => {
-                    const text = el.textContent || '';
-                    return text.length > 100 && 
-                           (text.includes('First round') || 
-                            text.includes('Second round') || 
-                            text.includes('Finals') ||
-                            text.includes('points') ||
-                            text.includes('seconds'));
-                });
-            
-            if (possibleResultsElements.length > 0) {
-                const resultsText = possibleResultsElements[0].textContent;
-                
-                const categoryNames = [
-                    'Bareback Riding',
-                    'Steer Wrestling',
-                    'Team Roping',
-                    'Saddle Bronc Riding',
-                    'Tie-Down Roping',
-                    'Barrel Racing',
-                    'Bull Riding',
-                    'Breakaway Roping'
-                ];
-                
-                categoryNames.forEach(categoryName => {
-                    if (resultsText.includes(categoryName)) {
-                        const categoryData = {
-                            name: categoryName,
-                            results: []
-                        };
-                        
-                        data.categories.push(categoryData);
-                    }
-                });
-            }
+            // Get page title and URL for reference
+            data.pageTitle = document.title;
+            data.currentUrl = window.location.href;
             
             return data;
-            
         }, eventData);
         
-        return results;
+        // Take full page screenshot
+        const screenshotBuffer = await page.screenshot({
+            fullPage: true,
+            type: 'png'
+        });
+        
+        // Convert screenshot to base64 for storage
+        const screenshotBase64 = screenshotBuffer.toString('base64');
+        
+        return {
+            ...basicInfo,
+            screenshot: `data:image/png;base64,${screenshotBase64}`,
+            screenshotSize: screenshotBuffer.length,
+            type: 'results_screenshot'
+        };
         
     } catch (error) {
-        log.error('Error extracting event results', {
+        log.error('Error taking screenshot for event results', {
             error: error.message,
             event: eventData.name
         });
-        return null;
+        return {
+            ...eventData,
+            error: error.message,
+            extractedAt: new Date().toISOString(),
+            type: 'results_error'
+        };
     }
 }
 
 /**
- * Extract daysheet data from an event page
+ * Extract daysheet data and take screenshots from an event page
  */
 export async function extractDaysheetData(page, eventData) {
-    log.debug(`Extracting daysheet for event: ${eventData.name}`);
+    log.debug(`Taking daysheet screenshot for event: ${eventData.name}`);
     
     try {
-        const daysheetData = await page.evaluate((baseEventData) => {
+        // Wait for content to load
+        await page.waitForTimeout(3000);
+        
+        // Get basic event information
+        const basicInfo = await page.evaluate((baseEventData) => {
             const data = {
                 ...baseEventData,
-                performances: [],
                 extractedAt: new Date().toISOString()
             };
             
@@ -196,39 +249,39 @@ export async function extractDaysheetData(page, eventData) {
                 data.eventName = h1.textContent.trim();
             }
             
-            const performanceElements = Array.from(document.querySelectorAll('a'))
-                .filter(a => {
-                    const text = a.textContent || '';
-                    return text.includes('Performance') || 
-                           text.match(/\d+(?:st|nd|rd|th)\s+Performance/i);
-                });
-            
-            performanceElements.forEach(perfElement => {
-                const performance = {
-                    name: perfElement.textContent.trim(),
-                    url: perfElement.href,
-                    contestants: []
-                };
-                
-                const dateMatch = performance.name.match(/\(([^)]+)\)/);
-                if (dateMatch) {
-                    performance.date = dateMatch[1];
-                }
-                
-                data.performances.push(performance);
-            });
+            // Get page title and URL for reference
+            data.pageTitle = document.title;
+            data.currentUrl = window.location.href;
             
             return data;
-            
         }, eventData);
         
-        return daysheetData;
+        // Take full page screenshot
+        const screenshotBuffer = await page.screenshot({
+            fullPage: true,
+            type: 'png'
+        });
+        
+        // Convert screenshot to base64 for storage
+        const screenshotBase64 = screenshotBuffer.toString('base64');
+        
+        return {
+            ...basicInfo,
+            screenshot: `data:image/png;base64,${screenshotBase64}`,
+            screenshotSize: screenshotBuffer.length,
+            type: 'daysheet_screenshot'
+        };
         
     } catch (error) {
-        log.error('Error extracting daysheet data', {
+        log.error('Error taking daysheet screenshot', {
             error: error.message,
             event: eventData.name
         });
-        return null;
+        return {
+            ...eventData,
+            error: error.message,
+            extractedAt: new Date().toISOString(),
+            type: 'daysheet_error'
+        };
     }
 }
