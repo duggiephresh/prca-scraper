@@ -19,12 +19,45 @@ router.addHandler(LABELS.LISTING, async ({ page, request, enqueueLinks, log, cra
     log.info('Processing results listing page', { url: request.url });
     
     try {
-        // Wait for initial content to load
-        log.debug('Waiting for page content...');
-        await page.waitForSelector('a', { 
-            timeout: 30000,
-            visible: true 
-        });
+        // Wait for initial content to load - try multiple selectors
+        log.debug('Waiting for page content to load...');
+        
+        try {
+            // First try to wait for body content to load
+            await page.waitForLoadState('networkidle', { timeout: 15000 });
+            log.debug('Network idle achieved');
+        } catch (error) {
+            log.debug('Network idle timeout, continuing...');
+        }
+        
+        // Try different selectors that might indicate the page has loaded
+        const selectors = [
+            'main',           // Main content area
+            '[data-testid]',  // React/Vue components often use data-testid
+            '.container',     // Common CSS class
+            'h1, h2, h3',     // Any heading
+            'a[href*="/result/"]',  // Specific result links
+            'a'               // Any links as fallback
+        ];
+        
+        let selectorFound = false;
+        for (const selector of selectors) {
+            try {
+                await page.waitForSelector(selector, { 
+                    timeout: 10000,
+                    visible: true 
+                });
+                log.debug(`Found content using selector: ${selector}`);
+                selectorFound = true;
+                break;
+            } catch (error) {
+                log.debug(`Selector ${selector} not found, trying next...`);
+            }
+        }
+        
+        if (!selectorFound) {
+            log.warning('No expected selectors found, but continuing with extraction attempt');
+        }
         
         // Handle pagination - click "Load More" if needed
         let hasMore = true;
@@ -95,7 +128,20 @@ router.addHandler(LABELS.LISTING, async ({ page, request, enqueueLinks, log, cra
         
         if (requests.length > 0) {
             await crawler.addRequests(requests);
-            log.info(`Enqueued ${requests.length} event pages for processing`);
+            
+            // Count and log different types separately
+            const resultRequests = requests.filter(r => r.userData.label === LABELS.EVENT_RESULTS);
+            const daysheetRequests = requests.filter(r => r.userData.label === LABELS.EVENT_DAYSHEET);
+            
+            log.info(`Enqueued ${requests.length} total event pages:`, {
+                results: resultRequests.length,
+                daysheets: daysheetRequests.length,
+                details: requests.map(r => ({
+                    type: r.userData.label,
+                    event: r.userData.eventData.name,
+                    url: r.url
+                }))
+            });
         }
         
     } catch (error) {
@@ -110,7 +156,12 @@ router.addHandler(LABELS.LISTING, async ({ page, request, enqueueLinks, log, cra
 // Handle individual event results page
 router.addHandler(LABELS.EVENT_RESULTS, async ({ page, request, log }) => {
     const eventData = request.userData.eventData;
-    log.info(`Processing event results: ${eventData.name}`, { url: request.url });
+    log.info(`🎯 Processing EVENT RESULTS: ${eventData.name}`, { 
+        url: request.url,
+        type: 'RESULTS',
+        eventStatus: eventData.status,
+        location: eventData.location
+    });
     
     try {
         await page.waitForSelector('h1', { timeout: 30000 });
@@ -121,12 +172,17 @@ router.addHandler(LABELS.EVENT_RESULTS, async ({ page, request, log }) => {
             await Dataset.pushData({
                 ...results,
                 type: 'results',
-                url: page.url()
+                dataType: 'EVENT_RESULTS',
+                url: page.url(),
+                extractedAt: new Date().toISOString()
             });
             
-            log.info(`Successfully extracted results for: ${eventData.name}`);
+            log.info(`✅ RESULTS extraction successful: ${eventData.name}`, {
+                categoriesFound: results.categories?.length || 0,
+                totalResults: results.results?.length || 0
+            });
         } else {
-            log.warning(`No results data found for: ${eventData.name}`);
+            log.warning(`⚠️  No results data found for: ${eventData.name}`);
         }
         
     } catch (error) {
@@ -146,7 +202,12 @@ router.addHandler(LABELS.EVENT_RESULTS, async ({ page, request, log }) => {
 // Handle individual event daysheet page
 router.addHandler(LABELS.EVENT_DAYSHEET, async ({ page, request, log }) => {
     const eventData = request.userData.eventData;
-    log.info(`Processing event daysheet: ${eventData.name}`, { url: request.url });
+    log.info(`📋 Processing EVENT DAYSHEET: ${eventData.name}`, { 
+        url: request.url,
+        type: 'DAYSHEET',
+        eventStatus: eventData.status,
+        location: eventData.location
+    });
     
     try {
         await page.waitForSelector('h1', { timeout: 30000 });
@@ -157,10 +218,17 @@ router.addHandler(LABELS.EVENT_DAYSHEET, async ({ page, request, log }) => {
             await Dataset.pushData({
                 ...daysheetData,
                 type: 'daysheet',
-                url: page.url()
+                dataType: 'EVENT_DAYSHEET',
+                url: page.url(),
+                extractedAt: new Date().toISOString()
             });
             
-            log.info(`Successfully extracted daysheet for: ${eventData.name}`);
+            log.info(`✅ DAYSHEET extraction successful: ${eventData.name}`, {
+                entriesFound: daysheetData.entries?.length || 0,
+                categories: daysheetData.categories?.length || 0
+            });
+        } else {
+            log.warning(`⚠️  No daysheet data found for: ${eventData.name}`);
         }
         
     } catch (error) {
