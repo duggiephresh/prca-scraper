@@ -23,9 +23,16 @@ router.addHandler(LABELS.LISTING, async ({ page, request, enqueueLinks, log, cra
         log.debug('Waiting for page content to load...');
         
         try {
+            // 🎭 HUMAN BEHAVIOR: Realistic page loading simulation
+            
             // First try to wait for body content to load
             await page.waitForSelector('body', { timeout: 10000 });
             log.debug('Page body loaded');
+            
+            // Human-like pause after page load (1.5-3 seconds)
+            const initialDelay = 1500 + Math.random() * 1500;
+            log.debug(`Human-like initial pause: ${Math.round(initialDelay)}ms`);
+            await new Promise(resolve => setTimeout(resolve, initialDelay));
             
             // Try to achieve network idle state
             try {
@@ -35,8 +42,21 @@ router.addHandler(LABELS.LISTING, async ({ page, request, enqueueLinks, log, cra
                 log.debug('Network idle timeout, continuing...');
             }
             
-            // Give the page some time to render JavaScript content
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            // 🎭 HUMAN SIMULATION: Random scroll behavior (humans always scroll)
+            await page.evaluate(() => {
+                window.scrollTo(0, Math.floor(Math.random() * 500));
+            });
+            await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 400));
+            
+            // Scroll back to top like a human reading
+            await page.evaluate(() => {
+                window.scrollTo(0, 0);
+            });
+            
+            // More realistic processing delay (humans take time to read/process)
+            const processingDelay = 2000 + Math.random() * 3000;
+            log.debug(`Human-like processing pause: ${Math.round(processingDelay)}ms`);
+            await new Promise(resolve => setTimeout(resolve, processingDelay));
             
             // Try different selectors that might indicate the page has loaded
             const selectors = [
@@ -85,8 +105,22 @@ router.addHandler(LABELS.LISTING, async ({ page, request, enqueueLinks, log, cra
                     
                     if (isVisible) {
                         log.debug(`Clicking "Load More" button (${loadCount + 1}/${maxLoads})`);
+                        
+                        // 🎭 HUMAN BEHAVIOR: Scroll to button first (like humans do)
+                        await loadMoreButton.scrollIntoViewIfNeeded();
+                        
+                        // Human-like pause before clicking (0.5-1.2 seconds)
+                        const preClickDelay = 500 + Math.random() * 700;
+                        await new Promise(resolve => setTimeout(resolve, preClickDelay));
+                        
+                        // Click with human-like timing
                         await loadMoreButton.click();
-                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        
+                        // Realistic wait for new content to load (2-4 seconds)
+                        const loadWait = 2000 + Math.random() * 2000;
+                        log.debug(`Waiting ${Math.round(loadWait)}ms for new content`);
+                        await new Promise(resolve => setTimeout(resolve, loadWait));
+                        
                         loadCount++;
                     } else {
                         hasMore = false;

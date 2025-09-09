@@ -13,7 +13,9 @@ const {
     maxConcurrency = 5,
     onlyCompleted = true,
     includeDaysheets = false,
-    debug = false
+    debug = false,
+    useProxy = false,
+    proxyConfiguration = null
 } = input;
 
 // Set logging level
@@ -26,45 +28,105 @@ log.info('Starting PRCA Rodeo Results Scraper', {
     maxRequestsPerCrawl,
     maxConcurrency,
     onlyCompleted,
-    includeDaysheets
+    includeDaysheets,
+    useProxy,
+    proxyConfig: proxyConfiguration ? 'configured' : 'none'
 });
+
+// 🕵️ Proxy configuration for human-like IP addresses
+const proxyConfig = useProxy && proxyConfiguration ? {
+    proxyConfiguration: Actor.createProxyConfiguration({
+        groups: proxyConfiguration.groups || ['RESIDENTIAL'],
+        countryCode: 'US',
+    })
+} : {};
 
 // Create the crawler
 const crawler = new PlaywrightCrawler({
     requestHandler: router,
     maxRequestsPerCrawl,
-    maxConcurrency,
+    maxConcurrency: useProxy ? Math.min(maxConcurrency, 2) : maxConcurrency, // Lower concurrency with proxies
     navigationTimeoutSecs: CRAWLER_CONFIG.navigationTimeout,
     maxRequestRetries: CRAWLER_CONFIG.maxRetries,
     requestHandlerTimeoutSecs: 120, // Increase timeout for Playwright
+    ...proxyConfig, // Add proxy configuration if enabled
     
-    // Performance optimization: block unnecessary resources
+    // Human-like browser simulation
     preNavigationHooks: [
         async ({ page, request, log }) => {
             log.debug(`Pre-navigation hook for ${request.url}`);
             
-            // Block images, stylesheets, and fonts to speed up loading with Playwright
+            // 🎭 HUMAN SIMULATION: Realistic browser fingerprinting
+            
+            // Set realistic user agent (recent Chrome on Windows)
+            await page.setExtraHTTPHeaders({
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'DNT': '1',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+                'Cache-Control': 'max-age=0'
+            });
+            
+            // Set realistic viewport (common 1920x1080 with some variance)
+            await page.setViewportSize({
+                width: 1920,
+                height: 1080
+            });
+            
+            // 🎭 STEALTH: Override automation detection
+            await page.addInitScript(() => {
+                // Remove webdriver property
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined,
+                });
+                
+                // Mock realistic browser properties
+                Object.defineProperty(navigator, 'plugins', {
+                    get: () => [1, 2, 3, 4, 5],
+                });
+                
+                Object.defineProperty(navigator, 'languages', {
+                    get: () => ['en-US', 'en'],
+                });
+                
+                // Mock realistic screen properties
+                Object.defineProperty(screen, 'availWidth', {
+                    get: () => 1920,
+                });
+                Object.defineProperty(screen, 'availHeight', {
+                    get: () => 1040,
+                });
+            });
+            
+            // 🎭 SELECTIVE RESOURCE BLOCKING (don't block everything - too suspicious)
             await page.route('**/*', async (route) => {
                 const resourceType = route.request().resourceType();
                 const url = route.request().url();
                 
-                // Block non-essential resources
-                if (CRAWLER_CONFIG.blockedResourceTypes.includes(resourceType)) {
+                // Only block the most bandwidth-heavy resources
+                if (['image', 'media', 'font'].includes(resourceType)) {
                     await route.abort();
                 } 
-                // Also block specific domains
-                else if (CRAWLER_CONFIG.blockedDomains.some(domain => url.includes(domain))) {
+                // Block known tracking/analytics (but not all - some expected)
+                else if (url.includes('googletagmanager.com') || url.includes('facebook.com/tr')) {
                     await route.abort();
                 }
                 else {
-                    await route.continue();
+                    // Add realistic headers to requests
+                    const headers = route.request().headers();
+                    headers['sec-ch-ua'] = '"Chromium";v="118", "Google Chrome";v="118", "Not=A?Brand";v="99"';
+                    headers['sec-ch-ua-mobile'] = '?0';
+                    headers['sec-ch-ua-platform'] = '"Windows"';
+                    
+                    await route.continue({ headers });
                 }
-            });
-            
-            // Set viewport (Playwright syntax)
-            await page.setViewportSize({
-                width: 1920,
-                height: 1080
             });
             
             // Pass configuration to handlers via userData

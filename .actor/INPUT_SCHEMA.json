@@ -45,6 +45,22 @@
       "type": "boolean",
       "description": "Enable debug logging",
       "default": false
+    },
+    "useProxy": {
+      "title": "Use Proxy",
+      "type": "boolean",
+      "description": "Enable residential proxy rotation to avoid blocking (requires Apify proxy subscription)",
+      "default": false
+    },
+    "proxyConfiguration": {
+      "title": "Proxy Configuration",
+      "type": "object",
+      "description": "Proxy settings (leave empty to use default residential proxies)",
+      "editor": "proxy",
+      "default": {
+        "useApifyProxy": true,
+        "apifyProxyGroups": ["RESIDENTIAL"]
+      }
     }
   },
   "required": []
