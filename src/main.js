@@ -34,12 +34,19 @@ log.info('Starting PRCA Rodeo Results Scraper', {
 });
 
 // 🕵️ Proxy configuration for human-like IP addresses
-const proxyConfig = useProxy && proxyConfiguration ? {
+const proxyConfig = useProxy ? {
     proxyConfiguration: Actor.createProxyConfiguration({
-        groups: proxyConfiguration.groups || ['RESIDENTIAL'],
+        groups: proxyConfiguration?.apifyProxyGroups || ['RESIDENTIAL'],
         countryCode: 'US',
     })
 } : {};
+
+if (useProxy) {
+    log.info('🕵️ Using residential proxies for stealth', {
+        groups: proxyConfiguration?.apifyProxyGroups || ['RESIDENTIAL'],
+        countryCode: 'US'
+    });
+}
 
 // Create the crawler
 const crawler = new PlaywrightCrawler({
